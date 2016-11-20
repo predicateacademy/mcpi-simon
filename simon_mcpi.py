@@ -15,19 +15,33 @@ COLUMNS = 5
 game = Simon(ROWS * COLUMNS)
 states = {}
 num = 0
-for i in range(ROWS):
-   for k in range(COLUMNS):
-      mc.setBlock(x+i, y, z+k, random.choice(blocks))
-      states[num] = Vec3(x+i, y, z+k)
-      num += 1
+
+def reset():
+    global num
+    for p in range(5):
+        num = 0
+        for i in range(ROWS):
+            for k in range(COLUMNS):
+                mc.setBlock(x+i, y, z+k, block.AIR.id)
+                states[num] = Vec3(x+i, y, z+k)
+                num += 1
+        time.sleep(0.5)
+        num = 0
+        for i in range(ROWS):
+            for k in range(COLUMNS):
+                mc.setBlock(x+i, y, z+k, random.choice(blocks))
+                states[num] = Vec3(x+i, y, z+k)
+                num += 1
+        time.sleep(0.5)
 
 def flash(play_list):
     for x in play_list:
         orig = mc.getBlock(states[x])
         mc.setBlock(states[x], block.AIR.id)
-        time.sleep(0.6)
+        time.sleep(0.75)
         mc.setBlock(states[x], orig)
-        time.sleep(0.6)
+        time.sleep(0.75)
+
 
 def check(pos):
     for x in states:
@@ -44,25 +58,26 @@ def poll():
         time.sleep(0.1)
 
 # - wait a few ticks to get started
+reset()
 time.sleep(5)
 mc.postToChat("Start Game")
+mc.postToChat('Round ' + str(game.get_num_rounds()))
+flash(game.get_round())
 
 while True:    
-    flash(game.get_round())
+    # wait for input
+    hitted = poll()
+    flash([hitted])
+    game.input(hitted)
 
-    # - wait for input
-    state = poll()
-    flash([state])
-    ret = game.input(state)
-
-    while ret == Response.OK or ret == Response.INVALID:
-        state = poll()
-        flash([state])
-        ret = game.input(state)
-        
-    if ret == Response.FAIL:
+    if game.get_state() == Response.FAIL:
         mc.postToChat('Game Over!')
-        mc.postToChat('You completed ' + str(game.get_num_rounds()) + ' rounds.')
-    else:
-        mc.postToChat('Round ' + str(game.get_num_rounds()))	
+        mc.postToChat('You completed ' + str(game.get_num_rounds()-1) + ' rounds.')
+        reset()
+        game.reset()
+    elif game.get_state() == Response.SUCCESS:
+        game.next_round()
+        mc.postToChat('Round ' + str(game.get_num_rounds()))
+        time.sleep(1)
+        flash(game.get_round())
 
