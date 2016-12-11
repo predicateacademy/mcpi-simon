@@ -1,6 +1,7 @@
 import random
 from enum import Enum
 
+
 class Response(Enum):
    FAIL = -1
    OK = 0
